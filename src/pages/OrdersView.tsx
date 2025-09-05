@@ -100,7 +100,7 @@ export const OrdersView: React.FC = () => {
               <Plus
                 size={25}
                 onClick={() => setIsModalOpen(true)}
-                className="text-sky-800 m-auto hover:bg-green-700 text-white transition-colors duration-200"
+                className="text-sky-800 m-auto hover:text-green-700 transition-colors duration-200"
               />
             </div>
           </div>

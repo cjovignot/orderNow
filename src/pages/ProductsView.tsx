@@ -88,12 +88,12 @@ export const ProductsView: React.FC = () => {
               <ScanLine
                 size={25}
                 onClick={() => setIsScannerOpen(true)}
-                className="text-green-700 hover:bg-green-700 text-white transition-colors duration-200"
+                className="text-green-700 hover:text-green-700 transition-colors duration-200"
               />
               <Plus
                 size={25}
                 onClick={() => setIsModalOpen(true)}
-                className="text-sky-800 hover:bg-green-700 text-white transition-colors duration-200"
+                className="text-sky-800 hover:text-green-700 transition-colors duration-200"
               />
             </div>
           </div>
