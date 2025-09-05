@@ -23,6 +23,11 @@ function AppContent() {
   // Active le thème clair/sombre
   useTheme();
 
+  function isIos() {
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    return /iphone|ipad|ipod/.test(userAgent);
+  }
+
   if (state.loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -94,7 +99,7 @@ function AppContent() {
           )}
 
           {/* Tutoriel iOS */}
-          {isSupported && !isInstalled && showIosGuide && (
+          {isSupported && !isInstalled && showIosGuide && isIos() && (
             <IosInstallGuide onClose={() => setShowIosGuide(false)} />
           )}
 

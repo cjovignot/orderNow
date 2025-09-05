@@ -1,4 +1,4 @@
-import { X, Share, Dot } from "lucide-react";
+import { X, Share, Dot, Plus } from "lucide-react";
 
 interface IosInstallGuideProps {
   onClose: () => void;
@@ -6,8 +6,14 @@ interface IosInstallGuideProps {
 
 export function IosInstallGuide({ onClose }: IosInstallGuideProps) {
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg mx-4 p-6 max-w-sm animate-fadeIn">
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 animate-fadeIn"
+      onClick={onClose} // clic sur overlay ferme le popup
+    >
+      <div
+        className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg mx-4 px-10 py-8"
+        onClick={(e) => e.stopPropagation()} // empêcher la propagation du clic vers l’overlay
+      >
         {/* Bouton fermer */}
         <button
           onClick={onClose}
@@ -21,24 +27,24 @@ export function IosInstallGuide({ onClose }: IosInstallGuideProps) {
         </h2>
 
         <div className="flex flex-col text-xs space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center ">
             <Dot size={25} />
-            <span>
-              Appuyez sur le bouton <strong>Partager</strong>{" "}
-              <Share size={17} />
+            <span className="flex gap-1">
+              Appuyez sur le bouton
+              <strong>Partager</strong> <Share size={15} />
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center ">
             <Dot size={25} />
-            <span>
-              Faites défiler et choisissez{" "}
-              <strong>Sur l'écran d'accueil +</strong>
+            <span className="flex gap-1">
+              Sélectionnez <strong>Sur l'écran d'accueil</strong>{" "}
+              <Plus size={15} />
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center ">
             <Dot size={25} />
             <span>
-              Validez en appuyant sur <strong>Ajouter</strong>.
+              Validez en appuyant sur <strong>Ajouter</strong>
             </span>
           </div>
         </div>
