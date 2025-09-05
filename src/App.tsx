@@ -12,11 +12,13 @@ import { LoadingSpinner } from "./components/LoadingSpinner";
 import { useTheme } from "./hooks/useTheme";
 import { usePWA } from "./hooks/usePWA";
 import { TriangleAlert } from "lucide-react";
+import { IosInstallGuide } from "./components/IosInstallGuide";
 
 function AppContent() {
   const { state } = useApp();
   const [isNavOpen, setIsNavOpen] = useState(false);
-  const { isInstallable, isSupported, installApp } = usePWA();
+  const { isInstallable, isSupported, isInstalled, installApp } = usePWA();
+  const [showIosGuide, setShowIosGuide] = useState(true);
 
   // Active le thème clair/sombre
   useTheme();
@@ -55,20 +57,26 @@ function AppContent() {
         <Navigation isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} />
 
         <main className="flex-1 transition-all duration-300 md:ml-0">
-          {/* Bannière PWA si installable */}
-          {!isSupported && (
-            <div className="flex font-medium items-center bg-red-600/70 p-4 text-xs text-white animate-slideDown fadeIn">
+          {/* bannière "navigateur non supporté" → seulement si non support AND
+          pas installé */}
+          {!isSupported && !isInstalled && (
+            <div className="flex font-medium items-center bg-red-600/70 p-4 text-xs text-white animate-slideDown">
               <TriangleAlert className="w-14 h-14 mr-2" />
-              <p>
-                Votre navigateur ne supporte pas l'installation automatique.
-                <br />
-                Ajoutez l'app à votre écran d'accueil via le menu du navigateur.
-              </p>
+              <div>
+                <p>
+                  Votre navigateur ne supporte pas l'installation automatique.
+                </p>
+                <p>
+                  Ajoutez l'app à votre écran d'accueil via le menu du
+                  navigateur.
+                </p>
+              </div>
             </div>
           )}
-
-          {isInstallable && (
-            <div className="flex justify-center font-medium items-center bg-blue-600 p-4 text-sm text-white animate-fadeIn slideUp">
+          {/* bouton Installer → seulement si le navigateur propose le prompt ET
+          que l'app n'est pas déjà installée */}
+          {isInstallable && !isInstalled && (
+            <div className="flex justify-center font-medium items-center bg-blue-600 p-4 text-sm text-white animate-slideUp">
               <button
                 onClick={installApp}
                 className="bg-white/20 px-3 py-1 rounded-md hover:bg-white/30 transition"
@@ -78,9 +86,20 @@ function AppContent() {
             </div>
           )}
 
+          {/* Bannière PWA desktop/android */}
+          {isInstallable && (
+            <div className="flex justify-center font-medium items-center bg-blue-600 p-4 text-sm text-white animate-fadeIn">
+              <button onClick={installApp}>Installer l’application</button>
+            </div>
+          )}
+
+          {/* Tutoriel iOS */}
+          {!isSupported && !isInstalled && showIosGuide && (
+            <IosInstallGuide onClose={() => setShowIosGuide(false)} />
+          )}
+
           {/* Contenu dynamique */}
           <div className="pb-16 animate-fadeIn">{renderCurrentView()}</div>
-
           {/* Navigation mobile en bas */}
           <BottomNav />
         </main>
