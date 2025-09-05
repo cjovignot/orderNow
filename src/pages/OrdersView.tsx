@@ -96,11 +96,11 @@ export const OrdersView: React.FC = () => {
               Orders ({filteredOrders.length})
             </h2>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 h-12">
               <Plus
                 size={25}
                 onClick={() => setIsModalOpen(true)}
-                className="text-sky-800 hover:bg-green-700 text-white transition-colors duration-200"
+                className="text-sky-800 m-auto hover:bg-green-700 text-white transition-colors duration-200"
               />
             </div>
           </div>
