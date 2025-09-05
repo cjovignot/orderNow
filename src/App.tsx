@@ -94,7 +94,7 @@ function AppContent() {
           )}
 
           {/* Tutoriel iOS */}
-          {!isSupported && !isInstalled && showIosGuide && (
+          {isSupported && !isInstalled && showIosGuide && (
             <IosInstallGuide onClose={() => setShowIosGuide(false)} />
           )}
 
