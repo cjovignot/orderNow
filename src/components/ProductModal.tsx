@@ -21,8 +21,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     name: "",
     barcode: "",
     supplierId: "",
-    quantity: 1,
-    price: 0,
+    quantity: "", // valeur par défaut vide pour pouvoir effacer
+    price: "", // valeur par défaut vide
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -30,19 +30,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   useEffect(() => {
     if (product) {
       setFormData({
-        name: product.name,
-        barcode: product.barcode,
-        supplierId: product.supplierId,
-        quantity: product.quantity,
-        price: product.price || 0,
+        name: product.name || "",
+        barcode: product.barcode || "",
+        supplierId: product.supplierId || "",
+        quantity:
+          product.quantity !== undefined ? String(product.quantity) : "",
+        price: product.price !== undefined ? String(product.price) : "",
       });
     } else {
       setFormData({
         name: "",
         barcode: "",
         supplierId: "",
-        quantity: 1,
-        price: 0,
+        quantity: "",
+        price: "",
       });
     }
     setErrors({});
@@ -50,11 +51,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
     if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.barcode.trim()) newErrors.barcode = "Barcode is required";
     if (!formData.supplierId) newErrors.supplierId = "Supplier is required";
-    if (formData.quantity <= 0)
+    if (formData.quantity === "" || Number(formData.quantity) <= 0)
       newErrors.quantity = "Quantity must be greater than 0";
 
     setErrors(newErrors);
@@ -63,22 +63,30 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      onSave({
-        ...formData,
-        price: formData.price > 0 ? formData.price : undefined,
-      });
-    }
+    if (!validateForm()) return;
+
+    onSave({
+      name: formData.name,
+      barcode: formData.barcode,
+      supplierId: formData.supplierId,
+      quantity: formData.quantity ? parseInt(formData.quantity) : 1,
+      price: formData.price ? parseFloat(formData.price) : undefined,
+    });
   };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "number" ? parseFloat(value) || 0 : value,
+      [name]:
+        type === "number"
+          ? value // garder string pour pouvoir effacer
+          : value,
     }));
+
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -88,7 +96,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-screen overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-screen overflow-y-auto relative">
+        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             {product ? "Edit Product" : "Add New Product"}
@@ -101,79 +110,71 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           </button>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Name */}
           <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Name *
             </label>
             <input
               type="text"
-              id="name"
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              placeholder="Enter product name"
+              className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 transition-colors ${
                 errors.name
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
-              placeholder="Enter product name"
             />
             {errors.name && (
               <p className="text-red-500 text-sm mt-1">{errors.name}</p>
             )}
           </div>
 
+          {/* Barcode */}
           <div>
-            <label
-              htmlFor="barcode"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Barcode *
             </label>
             <input
               type="text"
-              id="barcode"
               name="barcode"
               value={formData.barcode}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              placeholder="Enter or scan barcode"
+              className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 transition-colors ${
                 errors.barcode
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
-              placeholder="Enter or scan barcode"
             />
             {errors.barcode && (
               <p className="text-red-500 text-sm mt-1">{errors.barcode}</p>
             )}
           </div>
 
+          {/* Supplier */}
           <div>
-            <label
-              htmlFor="supplierId"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Supplier *
             </label>
             <select
-              id="supplierId"
               name="supplierId"
               value={formData.supplierId}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:ring focus:border-transparent transition-colors ${
+              className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-colors ${
                 errors.supplierId
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
             >
               <option value="">Select a supplier</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
             </select>
@@ -182,52 +183,47 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             )}
           </div>
 
+          {/* Quantity */}
           <div>
-            <label
-              htmlFor="quantity"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Quantity *
             </label>
             <input
               type="number"
-              id="quantity"
               name="quantity"
               value={formData.quantity}
               onChange={handleChange}
-              min="1"
-              className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              placeholder="Enter quantity"
+              min={1}
+              className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 transition-colors ${
                 errors.quantity
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
-              placeholder="Enter quantity"
             />
             {errors.quantity && (
               <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>
             )}
           </div>
 
+          {/* Price */}
           <div>
-            <label
-              htmlFor="price"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Price (optional)
             </label>
             <input
               type="number"
-              id="price"
               name="price"
               value={formData.price}
               onChange={handleChange}
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               placeholder="Enter price (€)"
+              min={0}
+              step={0.01}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 transition-colors"
             />
           </div>
 
+          {/* Buttons */}
           <div className="flex gap-3 pt-4">
             <button
               type="button"

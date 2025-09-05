@@ -127,22 +127,11 @@ export const OrdersView: React.FC = () => {
                   className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200"
                 >
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
+                    <div className="flex-2">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          Order #{order.id.slice(0, 8)}
+                        <h3 className="text-lg font-semibold text-sky-900 dark:text-white">
+                          #{order.id.slice(0, 8)}
                         </h3>
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${
-                            order.status === "draft"
-                              ? "bg-gray-100 text-gray-800"
-                              : order.status === "sent"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {order.status}
-                        </span>
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                         <p>
@@ -191,6 +180,19 @@ export const OrdersView: React.FC = () => {
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                      </div>
+                      <div className="flex justify-end">
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            order.status === "draft"
+                              ? "bg-gray-100 text-gray-800"
+                              : order.status === "sent"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {order.status}
+                        </span>
                       </div>
                     </div>
                   </div>
