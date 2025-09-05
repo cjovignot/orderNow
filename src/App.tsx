@@ -94,9 +94,9 @@ function AppContent() {
           )}
 
           {/* Tutoriel iOS */}
-          {isSupported && !isInstalled && showIosGuide && (
+          {/* {isSupported && !isInstalled && showIosGuide && (
             <IosInstallGuide onClose={() => setShowIosGuide(false)} />
-          )}
+          )} */}
 
           {/* Contenu dynamique */}
           <div className="pb-16 animate-fadeIn">{renderCurrentView()}</div>
