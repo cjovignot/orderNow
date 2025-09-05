@@ -67,7 +67,7 @@ function AppContent() {
             </div>
           )}
 
-          {!isInstallable && (
+          {isInstallable && (
             <div className="flex justify-center font-medium items-center bg-blue-600 p-4 text-sm text-white">
               <button onClick={installApp}>Installer l’application</button>
             </div>
