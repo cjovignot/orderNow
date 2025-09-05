@@ -57,7 +57,7 @@ function AppContent() {
         <main className="flex-1 transition-all duration-300 md:ml-0">
           {/* Bannière PWA si installable */}
           {!isSupported && (
-            <div className="flex font-medium items-center bg-red-600/70 p-4 text-xs text-white">
+            <div className="flex font-medium items-center bg-red-600/70 p-4 text-xs text-white animate-slideDown fadeIn">
               <TriangleAlert className="w-14 h-14 mr-2" />
               <p>
                 Votre navigateur ne supporte pas l'installation automatique.
@@ -68,8 +68,13 @@ function AppContent() {
           )}
 
           {isInstallable && (
-            <div className="flex justify-center font-medium items-center bg-blue-600 p-4 text-sm text-white">
-              <button onClick={installApp}>Installer l’application</button>
+            <div className="flex justify-center font-medium items-center bg-blue-600 p-4 text-sm text-white animate-fadeIn slideUp">
+              <button
+                onClick={installApp}
+                className="bg-white/20 px-3 py-1 rounded-md hover:bg-white/30 transition"
+              >
+                Installer l’application
+              </button>
             </div>
           )}
 

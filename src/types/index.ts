@@ -45,3 +45,6 @@ export interface UserPreferences {
 export type Theme = "light" | "dark" | "system";
 
 export type View = "suppliers" | "products" | "orders" | "settings";
+export interface NavigatorStandalone extends Navigator {
+  standalone?: boolean;
+}

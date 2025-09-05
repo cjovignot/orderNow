@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import type { NavigatorStandalone } from "../types";
 
 export function usePWA() {
   const [isInstallable, setIsInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isSupported, setIsSupported] = useState(true);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -13,18 +15,34 @@ export function usePWA() {
       setIsInstallable(true);
     };
 
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+    };
+
+    // Vérifie le mode d’affichage (standalone = lancé comme PWA)
+    if (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as NavigatorStandalone).standalone
+    ) {
+      setIsInstalled(true);
+    }
+
     if ("onbeforeinstallprompt" in window) {
       window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     } else {
-      // Safari iOS ou navigateur sans support
       setIsSupported(false);
     }
+
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstallPrompt
       );
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
@@ -47,6 +65,5 @@ export function usePWA() {
     }
   };
 
-  console.log(isSupported);
-  return { isInstallable, isSupported, installApp };
+  return { isInstallable, isSupported, isInstalled, installApp };
 }
