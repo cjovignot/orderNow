@@ -276,14 +276,14 @@ export const OrdersView: React.FC = () => {
           onAdd={(scanned) => {
             const updatedProducts = [...(currentOrder.products || [])];
             const existing = updatedProducts.find(
-              (p) => p.productId === scanned.productId // ✅
+              (p) => p.productId === scanned.id // ✅
             );
 
             if (existing) {
               existing.quantity += scanned.quantity ?? 1;
             } else {
               updatedProducts.push({
-                productId: scanned.productId, // ✅
+                productId: scanned.id, // ✅
                 quantity: scanned.quantity ?? 1,
                 price: scanned.price ?? 0,
               });

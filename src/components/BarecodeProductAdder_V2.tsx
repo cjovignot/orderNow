@@ -9,15 +9,18 @@ import type { Product, Supplier } from "../types";
 interface BarecodeProductAdderV2Props {
   mode: "order" | "catalog";
   onAdd: (scanned: {
-    productId: string;
+    id: string;
+    name: string;
+    supplierId: string;
     quantity: number;
     price: number;
-  }) => void;
+    barcode: string;
+  }) => void; // ✅ changement ici
   onClose?: () => void;
   fullScreen?: boolean;
   keepOpenOnAdd?: boolean;
-  products?: Product[]; // Catalogue complet
-  suppliers?: Supplier[]; // Liste des fournisseurs
+  products?: Product[];
+  suppliers?: Supplier[];
 }
 
 export function BarecodeProductAdder_V2({
@@ -110,21 +113,16 @@ export function BarecodeProductAdder_V2({
   const handleValidate = () => {
     if (!scannedCode) return;
 
-    if (mode === "order") {
-      if (!productName || !supplierId) return;
-      onAdd({
-        productId: scannedCode,
-        quantity,
-        price: price ?? 0,
-      });
-    } else {
-      if (!productName || !supplierId) return;
-      onAdd({
-        productId: scannedCode,
-        quantity: 1,
-        price: price ?? 0,
-      });
-    }
+    if (!productName || !supplierId) return; // for catalog mode
+
+    onAdd({
+      id: scannedCode,
+      name: productName,
+      supplierId,
+      quantity: quantity,
+      price: price ?? 0,
+      barcode: scannedCode,
+    });
 
     setIsDialogOpen(false);
     setScannedCode(null);

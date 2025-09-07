@@ -139,13 +139,13 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   mode="order"
                   onAdd={(scanned) => {
                     const catalogProduct = products.find(
-                      (p) => p.id === scanned.productId // ✅
+                      (p) => p.id === scanned.id // ✅
                     );
                     const priceFromCatalog =
                       catalogProduct?.price ?? scanned.price;
 
                     const existingIndex = orderProducts.findIndex(
-                      (p) => p.productId === scanned.productId // ✅
+                      (p) => p.productId === scanned.id // ✅
                     );
 
                     if (existingIndex >= 0) {
@@ -163,7 +163,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                       setOrderProducts([
                         ...orderProducts,
                         {
-                          productId: scanned.productId, // ✅
+                          productId: scanned.id, // ✅
                           quantity: scanned.quantity,
                           price: priceFromCatalog ?? 0,
                         },

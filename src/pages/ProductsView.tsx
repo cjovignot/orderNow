@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { Plus, Search, ScanLine, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, ScanLine, Trash2 } from "lucide-react";
 import { useApp } from "../hooks/useApp";
 import type { Product } from "../types";
 import { storage } from "../utils/storage";
-import { ProductModal } from "../components/ProductModal";
 import { BarecodeProductAdder_V2 } from "../components/BarecodeProductAdder_V2";
 
 export const ProductsView: React.FC = () => {
@@ -11,12 +10,6 @@ export const ProductsView: React.FC = () => {
 
   // Recherche
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Product Modal
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | undefined>(
-    undefined
-  );
 
   // Scanner
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -31,28 +24,46 @@ export const ProductsView: React.FC = () => {
     );
   });
 
-  // Ajout nouveau produit
-  const handleAddProduct = (
-    productData: Omit<Product, "id" | "createdAt" | "updatedAt">
-  ) => {
-    const newProduct: Product = {
-      ...productData,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    const updatedProducts = [...state.products, newProduct];
-    dispatch({ type: "ADD_PRODUCT", payload: newProduct });
-    storage.setProducts(updatedProducts);
-  };
+  // Ajout produit depuis scanner avec toutes les infos
+  const handleScannedProduct = (scanned: {
+    id: string;
+    name: string;
+    supplierId: string;
+    quantity: number;
+    price: number;
+    barcode: string;
+  }) => {
+    const existingProduct = state.products.find((p) => p.id === scanned.id);
 
-  // Mise à jour produit existant
-  const handleUpdateProduct = (updated: Product) => {
-    const updatedProducts = state.products.map((p) =>
-      p.id === updated.id ? updated : p
-    );
-    dispatch({ type: "UPDATE_PRODUCT", payload: updated });
-    storage.setProducts(updatedProducts);
+    if (existingProduct) {
+      // Si le produit existe, on met juste à jour la quantité
+      const updatedProduct = {
+        ...existingProduct,
+        quantity: existingProduct.quantity + scanned.quantity,
+      };
+      const updatedProducts = state.products.map((p) =>
+        p.id === scanned.id ? updatedProduct : p
+      );
+      dispatch({ type: "UPDATE_PRODUCT", payload: updatedProduct });
+      storage.setProducts(updatedProducts);
+    } else {
+      // Nouveau produit complet
+      const newProduct: Product = {
+        id: scanned.id,
+        name: scanned.name,
+        barcode: scanned.barcode,
+        supplierId: scanned.supplierId,
+        quantity: scanned.quantity,
+        price: scanned.price,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const updatedProducts = [...state.products, newProduct];
+      dispatch({ type: "ADD_PRODUCT", payload: newProduct });
+      storage.setProducts(updatedProducts);
+    }
+
+    setScannerOpen(false);
   };
 
   // Suppression produit
@@ -62,51 +73,6 @@ export const ProductsView: React.FC = () => {
       storage.setProducts(updatedProducts);
       dispatch({ type: "DELETE_PRODUCT", payload: id });
     }
-  };
-
-  // Edition produit
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setIsProductModalOpen(true);
-  };
-
-  // Ajout produit depuis scanner
-  const handleScannedProduct = (scanned: {
-    productId: string;
-    quantity: number;
-    price: number;
-  }) => {
-    const existingProduct = state.products.find(
-      (p) => p.id === scanned.productId
-    );
-
-    if (existingProduct) {
-      // Mise à jour quantité seulement
-      const updatedProduct = {
-        ...existingProduct,
-        quantity: existingProduct.quantity + scanned.quantity,
-      };
-      const updatedProducts = state.products.map((p) =>
-        p.id === scanned.productId ? updatedProduct : p
-      );
-      dispatch({ type: "UPDATE_PRODUCT", payload: updatedProduct });
-      storage.setProducts(updatedProducts);
-    } else {
-      // Nouveau produit → ouvrir le modal pour compléter le nom et le supplier
-      setEditingProduct({
-        id: scanned.productId,
-        name: "",
-        barcode: scanned.productId,
-        supplierId: "",
-        quantity: scanned.quantity,
-        price: scanned.price,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      setIsProductModalOpen(true);
-    }
-
-    setScannerOpen(false);
   };
 
   return (
@@ -128,10 +94,7 @@ export const ProductsView: React.FC = () => {
               )}
               <Plus
                 size={25}
-                onClick={() => {
-                  setEditingProduct(undefined);
-                  setIsProductModalOpen(true);
-                }}
+                onClick={() => alert("Direct scan required to add products")}
                 className="transition-colors duration-200 text-sky-800 hover:text-green-700"
               />
             </div>
@@ -155,7 +118,7 @@ export const ProductsView: React.FC = () => {
               <BarecodeProductAdder_V2
                 mode="catalog"
                 onAdd={handleScannedProduct}
-                fullScreen
+                fullScreen={true}
                 onClose={() => setScannerOpen(false)}
                 products={state.products}
                 suppliers={state.suppliers}
@@ -199,14 +162,9 @@ export const ProductsView: React.FC = () => {
                     </div>
                     <div className="flex gap-2 ml-4">
                       <button
-                        onClick={() => handleEditProduct(product)}
-                        className="p-2 text-gray-600 transition-colors duration-200 rounded-lg dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
                         onClick={() => handleDeleteProduct(product.id)}
                         className="p-2 text-gray-600 transition-colors duration-200 rounded-lg dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="Delete Product"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -220,25 +178,12 @@ export const ProductsView: React.FC = () => {
               <div className="py-12 text-center text-gray-500 dark:text-gray-400">
                 {searchTerm
                   ? "No products found matching your search."
-                  : "No products yet. Add one or scan a barcode to get started!"}
+                  : "No products yet. Scan a barcode to get started!"}
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Product modal */}
-      <ProductModal
-        isOpen={isProductModalOpen}
-        onClose={() => {
-          setIsProductModalOpen(false);
-          setEditingProduct(undefined);
-        }}
-        onSave={handleAddProduct}
-        onUpdate={editingProduct ? handleUpdateProduct : undefined}
-        product={editingProduct}
-        suppliers={state.suppliers}
-      />
     </div>
   );
 };

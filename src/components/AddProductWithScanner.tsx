@@ -17,11 +17,14 @@ export function AddProductWithScanner({
 
   // Quand un code-barres est scanné
   const handleAddScanned = (item: {
-    productId: string;
+    id: string;
+    name: string;
+    supplierId: string;
     quantity: number;
     price: number;
+    barcode: string;
   }) => {
-    setBarcode(item.productId); // On récupère le code-barres
+    setBarcode(item.barcode); // On récupère le code-barres
     setIsModalOpen(true); // On ouvre le modal pour compléter
   };
 
