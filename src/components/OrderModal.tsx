@@ -22,7 +22,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   orderToEdit,
   onSave,
   onUpdate,
-  readOnly = false, // ✅ false par défaut
+  readOnly = false,
 }) => {
   const [supplierId, setSupplierId] = useState("");
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
@@ -49,7 +49,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   );
 
   const handleSave = () => {
-    if (readOnly) return; // sécurité
+    if (readOnly) return;
     if (!supplierId) return alert("Select a supplier");
     if (orderProducts.length === 0) return alert("Add at least one product");
 
@@ -66,38 +66,6 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       onSave(orderData);
     }
     onClose();
-  };
-
-  const handleAddScannedProduct = (scanned: OrderProduct) => {
-    const catalogProduct = products.find((p) => p.id === scanned.productId);
-    const priceFromCatalog =
-      catalogProduct?.price !== undefined
-        ? catalogProduct.price
-        : scanned.price;
-
-    const existingIndex = orderProducts.findIndex(
-      (p) => p.productId === scanned.productId
-    );
-
-    if (existingIndex >= 0) {
-      const newProducts = [...orderProducts];
-      newProducts[existingIndex] = {
-        ...newProducts[existingIndex],
-        quantity: newProducts[existingIndex].quantity + scanned.quantity,
-        price: priceFromCatalog ?? newProducts[existingIndex].price,
-      };
-      setOrderProducts(newProducts);
-    } else {
-      setOrderProducts([
-        ...orderProducts,
-        {
-          productId: scanned.productId,
-          quantity: scanned.quantity,
-          price: priceFromCatalog ?? 0,
-        },
-      ]);
-    }
-    setScannerOpen(false); // Ferme le scanner après ajout
   };
 
   const updateProductAt = (idx: number, changes: Partial<OrderProduct>) => {
@@ -165,14 +133,46 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               )}
 
               {scannerOpen && (
-                <>
-                  <BarecodeProductAdder_V2<OrderProduct>
-                    fullScreen={true}
-                    keepOpenOnAdd={true} // scanner reste ouvert après ajout
-                    onAdd={(item) => handleAddScannedProduct(item)}
-                    onClose={() => setScannerOpen(false)} // bouton Fermer appellera ceci
-                  />
-                </>
+                <BarecodeProductAdder_V2
+                  fullScreen={true}
+                  keepOpenOnAdd={true}
+                  mode="order"
+                  onAdd={(scanned) => {
+                    const catalogProduct = products.find(
+                      (p) => p.id === scanned.productId // ✅
+                    );
+                    const priceFromCatalog =
+                      catalogProduct?.price ?? scanned.price;
+
+                    const existingIndex = orderProducts.findIndex(
+                      (p) => p.productId === scanned.productId // ✅
+                    );
+
+                    if (existingIndex >= 0) {
+                      const newProducts = [...orderProducts];
+                      newProducts[existingIndex] = {
+                        ...newProducts[existingIndex],
+                        quantity:
+                          newProducts[existingIndex].quantity +
+                          scanned.quantity,
+                        price:
+                          priceFromCatalog ?? newProducts[existingIndex].price,
+                      };
+                      setOrderProducts(newProducts);
+                    } else {
+                      setOrderProducts([
+                        ...orderProducts,
+                        {
+                          productId: scanned.productId, // ✅
+                          quantity: scanned.quantity,
+                          price: priceFromCatalog ?? 0,
+                        },
+                      ]);
+                    }
+                    setScannerOpen(false);
+                  }}
+                  onClose={() => setScannerOpen(false)}
+                />
               )}
             </div>
           )}

@@ -7,6 +7,7 @@ import {
   Mail,
   Eye,
   Trash2,
+  ScanLine,
 } from "lucide-react";
 import { useApp } from "../hooks/useApp";
 import type { Order, Product } from "../types";
@@ -14,6 +15,7 @@ import { storage } from "../utils/storage";
 import { generateOrderPDF } from "../utils/pdf";
 import { sendOrderEmail } from "../utils/email";
 import { OrderModal } from "../components/OrderModal";
+import { BarecodeProductAdder_V2 } from "../components/BarecodeProductAdder_V2";
 
 export const OrdersView: React.FC = () => {
   const { state, dispatch } = useApp();
@@ -21,12 +23,13 @@ export const OrdersView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOrderModal, setOrderModalModalOpen] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [mode, setMode] = useState<"view" | "edit" | "create">("create");
+
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const orders = state.orders || [];
   const suppliers = state.suppliers || [];
   const products = state.products || [];
-
-  const [mode, setMode] = useState<"view" | "edit" | "create">("create");
 
   const filteredOrders = orders.filter((order) => {
     const supplier = suppliers.find((s) => s.id === order.supplierId);
@@ -78,6 +81,7 @@ export const OrdersView: React.FC = () => {
     );
     storage.setOrders(updatedOrders);
     dispatch({ type: "UPDATE_ORDER", payload: updatedOrder });
+    setCurrentOrder(updatedOrder);
   };
 
   const handleDelete = (id: string) => {
@@ -140,6 +144,13 @@ export const OrdersView: React.FC = () => {
                 onClick={handleCreate}
                 className="m-auto transition-colors duration-200 text-sky-800 hover:text-green-700"
               />
+              {currentOrder && mode === "edit" && (
+                <ScanLine
+                  size={25}
+                  onClick={() => setScannerOpen(true)}
+                  className="m-auto text-green-700 transition-colors duration-200 hover:text-green-800"
+                />
+              )}
             </div>
           </div>
 
@@ -256,7 +267,45 @@ export const OrdersView: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* Modal */}
+
+      {/* Scanner modal pour ajouter produit à la commande */}
+      {scannerOpen && currentOrder && mode === "edit" && (
+        <BarecodeProductAdder_V2
+          mode="order"
+          products={products}
+          onAdd={(scanned) => {
+            const updatedProducts = [...(currentOrder.products || [])];
+            const existing = updatedProducts.find(
+              (p) => p.productId === scanned.productId // ✅
+            );
+
+            if (existing) {
+              existing.quantity += scanned.quantity ?? 1;
+            } else {
+              updatedProducts.push({
+                productId: scanned.productId, // ✅
+                quantity: scanned.quantity ?? 1,
+                price: scanned.price ?? 0,
+              });
+            }
+
+            const total = updatedProducts.reduce(
+              (sum, p) => sum + (p.price ?? 0) * p.quantity,
+              0
+            );
+
+            handleUpdateOrder({
+              ...currentOrder,
+              products: updatedProducts,
+              total,
+            });
+          }}
+          fullScreen
+          onClose={() => setScannerOpen(false)}
+        />
+      )}
+
+      {/* Order modal */}
       <OrderModal
         isOpen={isOrderModal}
         onClose={() => {
@@ -268,7 +317,7 @@ export const OrdersView: React.FC = () => {
         orderToEdit={currentOrder || undefined}
         onSave={handleSaveOrder}
         onUpdate={handleUpdateOrder}
-        readOnly={mode === "view"} // ✅ dépend du bouton cliqué
+        readOnly={mode === "view"}
       />
     </div>
   );

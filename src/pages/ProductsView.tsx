@@ -29,31 +29,28 @@ export const ProductsView: React.FC = () => {
     );
   });
 
-  // Sauvegarde produit
-  const handleSaveProduct = (
+  // Ajout nouveau produit
+  const handleAddProduct = (
     productData: Omit<Product, "id" | "createdAt" | "updatedAt">
   ) => {
-    const product: Product = {
+    const newProduct: Product = {
       ...productData,
-      id: editingProduct?.id || crypto.randomUUID(),
-      createdAt: editingProduct?.createdAt || new Date(),
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
       updatedAt: new Date(),
     };
-
-    let updatedProducts: Product[];
-    if (editingProduct) {
-      updatedProducts = state.products.map((p) =>
-        p.id === product.id ? product : p
-      );
-      dispatch({ type: "UPDATE_PRODUCT", payload: product });
-    } else {
-      updatedProducts = [...state.products, product];
-      dispatch({ type: "ADD_PRODUCT", payload: product });
-    }
-
+    const updatedProducts = [...state.products, newProduct];
+    dispatch({ type: "ADD_PRODUCT", payload: newProduct });
     storage.setProducts(updatedProducts);
-    setIsProductModalOpen(false);
-    setEditingProduct(null);
+  };
+
+  // Mise à jour produit existant
+  const handleUpdateProduct = (updated: Product) => {
+    const updatedProducts = state.products.map((p) =>
+      p.id === updated.id ? updated : p
+    );
+    dispatch({ type: "UPDATE_PRODUCT", payload: updated });
+    storage.setProducts(updatedProducts);
   };
 
   // Suppression produit
@@ -82,18 +79,14 @@ export const ProductsView: React.FC = () => {
     );
 
     if (existingProduct) {
+      const updatedProduct = {
+        ...existingProduct,
+        quantity: existingProduct.quantity + scanned.quantity,
+      };
       const updatedProducts = state.products.map((p) =>
-        p.id === scanned.productId
-          ? { ...p, quantity: p.quantity + scanned.quantity }
-          : p
+        p.id === scanned.productId ? updatedProduct : p
       );
-      dispatch({
-        type: "UPDATE_PRODUCT",
-        payload: {
-          ...existingProduct,
-          quantity: existingProduct.quantity + scanned.quantity,
-        },
-      });
+      dispatch({ type: "UPDATE_PRODUCT", payload: updatedProduct });
       storage.setProducts(updatedProducts);
     } else {
       const newProduct: Product = {
@@ -150,22 +143,18 @@ export const ProductsView: React.FC = () => {
             />
           </div>
 
+          {/* Scanner */}
           {scannerOpen && (
-            <>
-              <div className="fixed inset-0 z-[9999]">
-                <BarecodeProductAdder_V2
-                  onAdd={handleScannedProduct}
-                  fullScreen={true}
-                  onClose={() => setScannerOpen(false)} // bouton Fermer appellera ceci
-                />
-              </div>
-              {/* <button
-                onClick={() => setIsScannerOpen(false)}
-                className="fixed top-4 right-4 z-[10000] px-3 py-1 text-white bg-red-600 rounded hover:bg-red-700 pointer-events-auto"
-              >
-                Fermer
-              </button> */}
-            </>
+            <div className="fixed inset-0 z-[9999]">
+              <BarecodeProductAdder_V2
+                mode="catalog" // 👈 ajouté
+                onAdd={handleScannedProduct}
+                fullScreen={true}
+                onClose={() => setScannerOpen(false)}
+                products={state.products} // optionnel mais utile
+                suppliers={state.suppliers} // optionnel mais utile
+              />
+            </div>
           )}
 
           {/* Products list */}
@@ -231,6 +220,7 @@ export const ProductsView: React.FC = () => {
           </div>
         </div>
       </div>
+
       {/* Product modal */}
       <ProductModal
         isOpen={isProductModalOpen}
@@ -238,8 +228,9 @@ export const ProductsView: React.FC = () => {
           setIsProductModalOpen(false);
           setEditingProduct(null);
         }}
-        onSave={handleSaveProduct}
-        product={editingProduct}
+        onSave={handleAddProduct}
+        onUpdate={editingProduct ? handleUpdateProduct : undefined}
+        product={editingProduct || undefined}
         suppliers={state.suppliers}
       />
     </div>
