@@ -29,9 +29,9 @@ export const initialState: AppState = {
   user: null,
   preferences: storage.getPreferences(),
   currentView: "orders",
-  suppliers: [],
-  products: [],
-  orders: [],
+  suppliers: [] as Supplier[],
+  products: [] as Product[],
+  orders: [] as Order[],
   loading: true,
   error: null,
 };

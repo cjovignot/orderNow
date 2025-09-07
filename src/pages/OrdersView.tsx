@@ -1,25 +1,52 @@
 import React, { useState } from "react";
-import { Plus, Search, Download, Mail, Eye, Trash2, X } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Download,
+  Pencil,
+  Mail,
+  Eye,
+  Trash2,
+} from "lucide-react";
 import { useApp } from "../hooks/useApp";
-import type { Order, Supplier, Product } from "../types";
+import type { Order, Product } from "../types";
 import { storage } from "../utils/storage";
-import { OrderModal } from "../components/OrderModal";
 import { generateOrderPDF } from "../utils/pdf";
 import { sendOrderEmail } from "../utils/email";
+import { OrderModal } from "../components/OrderModal";
 
 export const OrdersView: React.FC = () => {
   const { state, dispatch } = useApp();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
-  const filteredOrders = state.orders.filter((order) => {
-    const supplier = state.suppliers.find((s) => s.id === order.supplierId);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOrderModal, setOrderModalModalOpen] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+
+  const orders = state.orders || [];
+  const suppliers = state.suppliers || [];
+  const products = state.products || [];
+
+  const filteredOrders = orders.filter((order) => {
+    const supplier = suppliers.find((s) => s.id === order.supplierId);
     return (
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
+
+  const handleCreate = () => {
+    setCurrentOrder(null);
+    setOrderModalModalOpen(true);
+  };
+
+  const handleEdit = (order: Order) => {
+    if (order.status === "draft") {
+      setCurrentOrder(order);
+      setOrderModalModalOpen(true);
+    } else {
+      alert("Only draft orders can be edited.");
+    }
+  };
 
   const handleSaveOrder = (
     orderData: Omit<Order, "id" | "createdAt" | "updatedAt">
@@ -30,16 +57,22 @@ export const OrdersView: React.FC = () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-
-    const updatedOrders = [...state.orders, order];
+    const updatedOrders = [...orders, order];
     storage.setOrders(updatedOrders);
     dispatch({ type: "ADD_ORDER", payload: order });
-    setIsModalOpen(false);
   };
 
-  const handleDeleteOrder = (id: string) => {
+  const handleUpdateOrder = (updatedOrder: Order) => {
+    const updatedOrders = orders.map((o) =>
+      o.id === updatedOrder.id ? updatedOrder : o
+    );
+    storage.setOrders(updatedOrders);
+    dispatch({ type: "UPDATE_ORDER", payload: updatedOrder });
+  };
+
+  const handleDelete = (id: string) => {
     if (window.confirm("Are you sure you want to delete this order?")) {
-      const updatedOrders = state.orders.filter((o) => o.id !== id);
+      const updatedOrders = orders.filter((o) => o.id !== id);
       storage.setOrders(updatedOrders);
       dispatch({ type: "DELETE_ORDER", payload: id });
     }
@@ -47,12 +80,12 @@ export const OrdersView: React.FC = () => {
 
   const handleDownloadPDF = async (order: Order) => {
     try {
-      const supplier = state.suppliers.find((s) => s.id === order.supplierId);
+      const supplier = suppliers.find((s) => s.id === order.supplierId);
       if (!supplier) return;
 
-      const products = order.products
+      const orderProducts = order.products
         .map((op) => {
-          const product = state.products.find((p) => p.id === op.productId);
+          const product = products.find((p) => p.id === op.productId);
           if (!product) return null;
           return {
             ...product,
@@ -65,7 +98,7 @@ export const OrdersView: React.FC = () => {
             p !== null
         );
 
-      await generateOrderPDF(order, supplier, products);
+      await generateOrderPDF(order, supplier, orderProducts);
     } catch {
       alert("Failed to generate PDF");
     }
@@ -73,12 +106,8 @@ export const OrdersView: React.FC = () => {
 
   const handleSendEmail = async (order: Order) => {
     try {
-      const supplier = state.suppliers.find((s) => s.id === order.supplierId);
-      if (!supplier) {
-        alert("Supplier not found");
-        return;
-      }
-
+      const supplier = suppliers.find((s) => s.id === order.supplierId);
+      if (!supplier) return alert("Supplier not found");
       await sendOrderEmail(order, supplier);
       alert("Email sent successfully!");
     } catch {
@@ -91,49 +120,48 @@ export const OrdersView: React.FC = () => {
       <div className="bg-white border border-gray-200 shadow-sm dark:bg-gray-800 rounded-xl dark:border-gray-700">
         <div className="space-y-6">
           {/* Header */}
-          <div className="h-24 flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between h-24 p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Orders ({filteredOrders.length})
             </h2>
-
-            <div className="flex gap-2 h-12">
+            <div className="flex h-12 gap-2">
               <Plus
                 size={25}
-                onClick={() => setIsModalOpen(true)}
-                className="text-sky-800 m-auto hover:text-green-700 transition-colors duration-200"
+                onClick={handleCreate}
+                className="m-auto transition-colors duration-200 text-sky-800 hover:text-green-700"
               />
             </div>
           </div>
 
+          {/* Search */}
           <div className="relative mx-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
             <input
               type="text"
               placeholder="Search orders..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+              className="w-full py-3 pl-10 pr-4 text-gray-900 placeholder-gray-500 transition-colors duration-200 bg-white border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 focus:ring dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
+          {/* Orders List */}
           <div className="grid gap-4">
             {filteredOrders.map((order) => {
-              const supplier = state.suppliers.find(
-                (s) => s.id === order.supplierId
-              );
+              const supplier = suppliers.find((s) => s.id === order.supplierId);
               return (
                 <div
                   key={order.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200"
+                  className="p-6 transition-shadow duration-200 bg-white rounded-lg shadow-md dark:bg-gray-800 hover:shadow-lg"
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex items-start justify-between">
                     <div className="flex-2">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-semibold text-sky-900 dark:text-white">
                           #{order.id.slice(0, 8)}
                         </h3>
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                      <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                         <p>
                           <strong>Supplier:</strong>{" "}
                           {supplier?.name || "Unknown"}
@@ -150,32 +178,43 @@ export const OrdersView: React.FC = () => {
                         </p>
                       </div>
                     </div>
+
                     <div className="flex flex-col gap-2 ml-4">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => setViewingOrder(order)}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
-                          title="View Details"
+                          onClick={() => {
+                            setCurrentOrder(order);
+                            setOrderModalModalOpen(true);
+                          }}
+                          className="p-2 text-gray-600 transition-colors duration-200 rounded-lg dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          title="View / Edit"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDownloadPDF(order)}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                          className="p-2 text-gray-600 transition-colors duration-200 rounded-lg dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                           title="Download PDF"
                         >
                           <Download className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleSendEmail(order)}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                          className="p-2 text-gray-600 transition-colors duration-200 rounded-lg dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                           title="Send Email"
                         >
                           <Mail className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteOrder(order.id)}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                          onClick={() => handleEdit(order)}
+                          className="p-2 text-gray-600 transition-colors duration-200 rounded-lg dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          title="Edit Order"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(order.id)}
+                          className="p-2 text-gray-600 transition-colors duration-200 rounded-lg dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                           title="Delete Order"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -201,91 +240,28 @@ export const OrdersView: React.FC = () => {
             })}
 
             {filteredOrders.length === 0 && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <div className="py-12 text-center text-gray-500 dark:text-gray-400">
                 {searchTerm
                   ? "No orders found matching your search."
                   : "No orders yet. Create one to get started!"}
               </div>
             )}
           </div>
-
-          <OrderModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onSave={handleSaveOrder}
-            suppliers={state.suppliers}
-            products={state.products}
-          />
-
-          {viewingOrder && (
-            <OrderViewModal
-              order={viewingOrder}
-              supplier={
-                state.suppliers.find((s) => s.id === viewingOrder.supplierId)!
-              }
-              products={state.products}
-              onClose={() => setViewingOrder(null)}
-            />
-          )}
         </div>
       </div>
+      {/* Modal */}
+      <OrderModal
+        isOpen={isOrderModal}
+        onClose={() => {
+          setOrderModalModalOpen(false);
+          setCurrentOrder(null);
+        }}
+        suppliers={suppliers}
+        products={products}
+        orderToEdit={currentOrder || undefined}
+        onSave={handleSaveOrder}
+        onUpdate={handleUpdateOrder}
+      />
     </div>
   );
 };
-
-const OrderViewModal: React.FC<{
-  order: Order;
-  supplier: Supplier;
-  products: Product[];
-  onClose: () => void;
-}> = ({ order, supplier, products, onClose }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
-      <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Order #{order.id.slice(0, 8)}
-        </h3>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
-      <div className="p-6">
-        <div className="space-y-4">
-          <div>
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-              Supplier
-            </h4>
-            <p className="text-gray-600 dark:text-gray-400">{supplier.name}</p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-              Products
-            </h4>
-            <div className="space-y-2">
-              {order.products.map((op, index) => {
-                const product = products.find((p) => p.id === op.productId);
-                return (
-                  <div key={index} className="flex justify-between text-sm">
-                    <span>{product?.name || "Unknown Product"}</span>
-                    <span>
-                      Qty: {op.quantity} × €{op.price.toFixed(2)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="pt-4 border-t">
-            <div className="flex justify-between font-semibold">
-              <span>Total:</span>
-              <span>€{order.total.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);

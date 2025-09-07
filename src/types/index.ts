@@ -25,7 +25,7 @@ export interface Order {
   supplierId: string;
   products: OrderProduct[];
   total: number;
-  status: "draft" | "sent" | "received";
+  status: "draft" | "sent" | "pending" | "completed" | "cancelled";
   createdAt: Date;
   updatedAt: Date;
 }
