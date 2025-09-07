@@ -1,7 +1,9 @@
 // BarecodeProductAdder_V2.tsx
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Scanner } from "@yudiel/react-qr-scanner";
+import { X } from "lucide-react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+import { Result } from "@zxing/library";
 import * as Dialog from "@radix-ui/react-dialog";
 
 interface BarecodeProductAdderV2Props<
@@ -26,26 +28,66 @@ export function BarecodeProductAdder_V2<
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const codeReaderRef = useRef<InstanceType<
+    typeof BrowserMultiFormatReader
+  > | null>(null);
   const lastScannedRef = useRef<{ code: string; time: number } | null>(null);
 
-  const handleScan = (results: { rawValue: string }[]) => {
-    if (!results || results.length === 0) return;
-    const code = results[0].rawValue;
-    const now = Date.now();
+  useEffect(() => {
+    if (!videoRef.current) return;
 
-    if (
-      lastScannedRef.current?.code === code &&
-      now - lastScannedRef.current.time < 1000
-    )
-      return;
-
-    if (!isDialogOpen) {
-      setScannedCode(code);
-      setQuantity(1);
-      setIsDialogOpen(true);
-      lastScannedRef.current = { code, time: now };
+    // Stopper tout flux existant
+    if (videoRef.current.srcObject) {
+      const oldStream = videoRef.current.srcObject as MediaStream;
+      oldStream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
     }
-  };
+
+    const codeReader = new BrowserMultiFormatReader();
+    codeReaderRef.current = codeReader;
+
+    // Lancer le scan après un petit délai pour éviter l'AbortError
+    const timeout = setTimeout(() => {
+      codeReader
+        .decodeFromVideoDevice(
+          undefined,
+          videoRef.current!,
+          (result: Result | undefined) => {
+            if (result) {
+              const code = result.getText();
+              const now = Date.now();
+
+              if (
+                lastScannedRef.current?.code === code &&
+                now - lastScannedRef.current.time < 1000
+              )
+                return;
+
+              lastScannedRef.current = { code, time: now };
+
+              if (!isDialogOpen) {
+                setScannedCode(code);
+                setQuantity(1);
+                setIsDialogOpen(true);
+              }
+            }
+          }
+        )
+        .then(() => setCameraReady(true))
+        .catch(console.error);
+    }, 100); // 100ms suffisent généralement
+
+    return () => {
+      clearTimeout(timeout);
+      // Arrêter le flux vidéo proprement
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+    };
+  }, [isDialogOpen]);
 
   const handleValidate = () => {
     if (!scannedCode) return;
@@ -70,22 +112,19 @@ export function BarecodeProductAdder_V2<
   const scannerContent = (
     <div className={`relative ${fullScreen ? "flex-1" : "w-full h-64"}`}>
       {!cameraReady && cameraPlaceholder}
-      <Scanner
+      <video
+        ref={videoRef}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
           cameraReady ? "opacity-100" : "opacity-0"
         }`}
-        onScan={handleScan}
-        onLoad={() => setCameraReady(true)}
-        videoConstraints={{ facingMode: "environment" }} // caméra arrière par défaut
-        style={{ width: "100%", height: "100%" }}
       />
       {/* Bouton fermer */}
       {onClose && (
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-[11000] px-3 py-1 text-white bg-red-600 rounded hover:bg-red-700"
+          className="absolute top-4 right-4 z-[11000] px-1 py-1 text-white bg-gray-600/40 rounded hover:bg-gray-700/40"
         >
-          Fermer
+          <X />
         </button>
       )}
       {/* Dialog quantité */}

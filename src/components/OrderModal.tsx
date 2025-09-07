@@ -11,6 +11,7 @@ interface OrderModalProps {
   orderToEdit?: Order;
   onSave: (orderData: Omit<Order, "id" | "createdAt" | "updatedAt">) => void;
   onUpdate: (order: Order) => void;
+  readOnly?: boolean;
 }
 
 export const OrderModal: React.FC<OrderModalProps> = ({
@@ -21,6 +22,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   orderToEdit,
   onSave,
   onUpdate,
+  readOnly = false, // ✅ false par défaut
 }) => {
   const [supplierId, setSupplierId] = useState("");
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
@@ -47,6 +49,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   );
 
   const handleSave = () => {
+    if (readOnly) return; // sécurité
     if (!supplierId) return alert("Select a supplier");
     if (orderProducts.length === 0) return alert("Add at least one product");
 
@@ -108,8 +111,6 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const removeProductAt = (idx: number) => {
     setOrderProducts(orderProducts.filter((_, i) => i !== idx));
   };
-
-  const readOnly = Boolean(orderToEdit && status !== "draft");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">

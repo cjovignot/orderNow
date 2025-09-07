@@ -26,6 +26,8 @@ export const OrdersView: React.FC = () => {
   const suppliers = state.suppliers || [];
   const products = state.products || [];
 
+  const [mode, setMode] = useState<"view" | "edit" | "create">("create");
+
   const filteredOrders = orders.filter((order) => {
     const supplier = suppliers.find((s) => s.id === order.supplierId);
     return (
@@ -36,12 +38,20 @@ export const OrdersView: React.FC = () => {
 
   const handleCreate = () => {
     setCurrentOrder(null);
+    setMode("create");
+    setOrderModalModalOpen(true);
+  };
+
+  const handleView = (order: Order) => {
+    setCurrentOrder(order);
+    setMode("view");
     setOrderModalModalOpen(true);
   };
 
   const handleEdit = (order: Order) => {
     if (order.status === "draft") {
       setCurrentOrder(order);
+      setMode("edit");
       setOrderModalModalOpen(true);
     } else {
       alert("Only draft orders can be edited.");
@@ -182,12 +192,9 @@ export const OrdersView: React.FC = () => {
                     <div className="flex flex-col gap-2 ml-4">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => {
-                            setCurrentOrder(order);
-                            setOrderModalModalOpen(true);
-                          }}
+                          onClick={() => handleView(order)}
                           className="p-2 text-gray-600 transition-colors duration-200 rounded-lg dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          title="View / Edit"
+                          title="View Order"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -261,6 +268,7 @@ export const OrdersView: React.FC = () => {
         orderToEdit={currentOrder || undefined}
         onSave={handleSaveOrder}
         onUpdate={handleUpdateOrder}
+        readOnly={mode === "view"} // ✅ dépend du bouton cliqué
       />
     </div>
   );
