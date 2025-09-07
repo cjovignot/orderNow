@@ -60,7 +60,7 @@ export function BarecodeProductAdder_V2<
 
               if (
                 lastScannedRef.current?.code === code &&
-                now - lastScannedRef.current.time < 1000
+                now - lastScannedRef.current?.time < 1000
               )
                 return;
 
