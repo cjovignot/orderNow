@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-import { Result } from "@zxing/library";
+import { BrowserMultiFormatReader, Result } from "@zxing/browser";
+// import type { Result } from "@zxing/library";
 import * as Dialog from "@radix-ui/react-dialog";
 
 interface BarecodeProductAdderV2Props<
@@ -53,16 +53,17 @@ export function BarecodeProductAdder_V2<
         .decodeFromVideoDevice(
           undefined,
           videoRef.current!,
-          (result: Result | undefined) => {
+          (result: InstanceType<typeof Result> | undefined) => {
             if (result) {
               const code = result.getText();
               const now = Date.now();
 
               if (
                 lastScannedRef.current?.code === code &&
-                now - lastScannedRef.current?.time < 1000
-              )
+                now - (lastScannedRef.current?.time ?? 0) < 1000
+              ) {
                 return;
+              }
 
               lastScannedRef.current = { code, time: now };
 
