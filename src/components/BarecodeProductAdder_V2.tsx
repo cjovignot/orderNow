@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { BrowserMultiFormatReader, Result } from "@zxing/browser";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 // import type { Result } from "@zxing/library";
 import * as Dialog from "@radix-ui/react-dialog";
 
@@ -47,14 +47,23 @@ export function BarecodeProductAdder_V2<
     const codeReader = new BrowserMultiFormatReader();
     codeReaderRef.current = codeReader;
 
-    // Lancer le scan après un petit délai pour éviter l'AbortError
+    // Type guard pour détecter un résultat ZXing valide
+    function isZXingResult(obj: unknown): obj is { getText: () => string } {
+      return (
+        typeof obj === "object" &&
+        obj !== null &&
+        "getText" in obj &&
+        typeof (obj as { getText?: unknown }).getText === "function"
+      );
+    }
+
     const timeout = setTimeout(() => {
       codeReader
         .decodeFromVideoDevice(
           undefined,
           videoRef.current!,
-          (result: InstanceType<typeof Result> | undefined) => {
-            if (result) {
+          (result: unknown, err?: unknown) => {
+            if (isZXingResult(result)) {
               const code = result.getText();
               const now = Date.now();
 
@@ -73,11 +82,15 @@ export function BarecodeProductAdder_V2<
                 setIsDialogOpen(true);
               }
             }
+
+            if (err) {
+              console.warn(err);
+            }
           }
         )
         .then(() => setCameraReady(true))
         .catch(console.error);
-    }, 100); // 100ms suffisent généralement
+    }, 100);
 
     return () => {
       clearTimeout(timeout);
