@@ -201,7 +201,7 @@ export const OrdersView: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col gap-2 ml-4">
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <button
                           onClick={() => handleView(order)}
                           className="p-2 text-gray-600 transition-colors duration-200 rounded-lg dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700"

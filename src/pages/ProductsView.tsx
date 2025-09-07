@@ -14,7 +14,9 @@ export const ProductsView: React.FC = () => {
 
   // Product Modal
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>(
+    undefined
+  );
 
   // Scanner
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -79,6 +81,7 @@ export const ProductsView: React.FC = () => {
     );
 
     if (existingProduct) {
+      // Mise à jour quantité seulement
       const updatedProduct = {
         ...existingProduct,
         quantity: existingProduct.quantity + scanned.quantity,
@@ -89,18 +92,18 @@ export const ProductsView: React.FC = () => {
       dispatch({ type: "UPDATE_PRODUCT", payload: updatedProduct });
       storage.setProducts(updatedProducts);
     } else {
-      const newProduct: Product = {
+      // Nouveau produit → ouvrir le modal pour compléter le nom et le supplier
+      setEditingProduct({
         id: scanned.productId,
-        name: "Nouveau produit",
+        name: "",
         barcode: scanned.productId,
         supplierId: "",
         quantity: scanned.quantity,
         price: scanned.price,
         createdAt: new Date(),
         updatedAt: new Date(),
-      };
-      dispatch({ type: "ADD_PRODUCT", payload: newProduct });
-      storage.setProducts([...state.products, newProduct]);
+      });
+      setIsProductModalOpen(true);
     }
 
     setScannerOpen(false);
@@ -125,7 +128,10 @@ export const ProductsView: React.FC = () => {
               )}
               <Plus
                 size={25}
-                onClick={() => setIsProductModalOpen(true)}
+                onClick={() => {
+                  setEditingProduct(undefined);
+                  setIsProductModalOpen(true);
+                }}
                 className="transition-colors duration-200 text-sky-800 hover:text-green-700"
               />
             </div>
@@ -147,12 +153,12 @@ export const ProductsView: React.FC = () => {
           {scannerOpen && (
             <div className="fixed inset-0 z-[9999]">
               <BarecodeProductAdder_V2
-                mode="catalog" // 👈 ajouté
+                mode="catalog"
                 onAdd={handleScannedProduct}
-                fullScreen={true}
+                fullScreen
                 onClose={() => setScannerOpen(false)}
-                products={state.products} // optionnel mais utile
-                suppliers={state.suppliers} // optionnel mais utile
+                products={state.products}
+                suppliers={state.suppliers}
               />
             </div>
           )}
@@ -226,11 +232,11 @@ export const ProductsView: React.FC = () => {
         isOpen={isProductModalOpen}
         onClose={() => {
           setIsProductModalOpen(false);
-          setEditingProduct(null);
+          setEditingProduct(undefined);
         }}
         onSave={handleAddProduct}
         onUpdate={editingProduct ? handleUpdateProduct : undefined}
-        product={editingProduct || undefined}
+        product={editingProduct}
         suppliers={state.suppliers}
       />
     </div>

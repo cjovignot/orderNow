@@ -115,14 +115,14 @@ export function BarecodeProductAdder_V2({
       onAdd({
         productId: scannedCode,
         quantity,
-        price: price ?? 0, // 👈 évite undefined
+        price: price ?? 0,
       });
     } else {
       if (!productName || !supplierId) return;
       onAdd({
         productId: scannedCode,
         quantity: 1,
-        price: price ?? 0, // 👈 pareil ici
+        price: price ?? 0,
       });
     }
 
