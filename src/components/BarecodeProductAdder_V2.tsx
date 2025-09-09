@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
+import type { Result } from "@zxing/library"; // ✅ importer uniquement comme type
+
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Product, Supplier } from "../types";
 
@@ -15,7 +17,7 @@ interface BarecodeProductAdderV2Props {
     quantity: number;
     price: number;
     barcode: string;
-  }) => void; // ✅ changement ici
+  }) => void;
   onClose?: () => void;
   fullScreen?: boolean;
   keepOpenOnAdd?: boolean;
@@ -42,30 +44,46 @@ export function BarecodeProductAdder_V2({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastScannedRef = useRef<{ code: string; time: number } | null>(null);
+  const codeReaderRef = useRef<InstanceType<
+    typeof BrowserMultiFormatReader
+  > | null>(null);
+
+  // --- Fonction pour arrêter la caméra proprement
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+
+    if (codeReaderRef.current) {
+      try {
+        codeReaderRef.current.reset(); // ✅ uniquement si c’est bien une instance BrowserMultiFormatReader
+        codeReaderRef.current = null;
+      } catch {
+        // Si reset n’existe pas, ignore
+      }
+    }
+  };
 
   useEffect(() => {
     if (!videoRef.current) return;
 
-    if (videoRef.current.srcObject) {
-      const oldStream = videoRef.current.srcObject as MediaStream;
-      oldStream.getTracks().forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-    }
-
     const codeReader = new BrowserMultiFormatReader();
+    codeReaderRef.current = codeReader;
 
-    const isZXingResult = (obj: unknown): obj is { getText: () => string } =>
+    const isZXingResult = (obj: unknown): obj is Result =>
       typeof obj === "object" &&
       obj !== null &&
       "getText" in obj &&
-      typeof (obj as { getText: () => string }).getText === "function";
+      typeof (obj as Result).getText === "function";
 
     codeReader
       .decodeFromVideoDevice(
         undefined,
         videoRef.current,
-        (result: unknown, err?: unknown) => {
-          if (isZXingResult(result)) {
+        (result: Result | undefined, err?: unknown) => {
+          if (result && isZXingResult(result)) {
             const code = result.getText();
             const now = Date.now();
 
@@ -76,6 +94,7 @@ export function BarecodeProductAdder_V2({
               return;
 
             lastScannedRef.current = { code, time: now };
+
             if (!isDialogOpen) {
               setScannedCode(code);
               setQuantity(1);
@@ -101,37 +120,39 @@ export function BarecodeProductAdder_V2({
       .then(() => setCameraReady(true))
       .catch(console.error);
 
-    return () => {
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
-        videoRef.current.srcObject = null;
-      }
-    };
+    return () => stopCamera();
   }, [isDialogOpen, mode, products]);
 
   const handleValidate = () => {
     if (!scannedCode) return;
-
-    if (!productName || !supplierId) return; // for catalog mode
+    if (!productName || !supplierId) return; // requis en mode catalog
 
     onAdd({
       id: scannedCode,
       name: productName,
       supplierId,
-      quantity: quantity,
+      quantity,
       price: price ?? 0,
       barcode: scannedCode,
     });
 
     setIsDialogOpen(false);
     setScannedCode(null);
-    if (!keepOpenOnAdd && onClose) onClose();
+
+    if (!keepOpenOnAdd && onClose) {
+      stopCamera();
+      onClose();
+    }
   };
 
   const handleCancel = () => {
     setIsDialogOpen(false);
     setScannedCode(null);
+  };
+
+  const handleClose = () => {
+    stopCamera();
+    if (onClose) onClose();
   };
 
   return fullScreen
@@ -159,14 +180,23 @@ export function BarecodeProductAdder_V2({
         />
         {onClose && (
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-4 right-4 z-[11000] px-1 py-1 text-white bg-gray-600/40 rounded hover:bg-gray-700/40"
           >
             <X />
           </button>
         )}
 
-        <Dialog.Root open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog.Root
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              // si on ferme le dialog manuellement → stop caméra
+              stopCamera();
+            }
+          }}
+        >
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[12000]" />
             <Dialog.Content className="fixed z-[12001] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded w-[90%] max-w-sm">

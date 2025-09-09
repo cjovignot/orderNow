@@ -314,10 +314,38 @@ export const OrdersView: React.FC = () => {
         }}
         suppliers={suppliers}
         products={products}
+        orders={orders} // ✅ ajouté
         orderToEdit={currentOrder || undefined}
         onSave={handleSaveOrder}
         onUpdate={handleUpdateOrder}
         readOnly={mode === "view"}
+        addProductToOrder={(orderId, product) => {
+          // ✅ ajouté
+          const order = orders.find((o) => o.id === orderId);
+          if (!order) return;
+
+          const updatedProducts = [...(order.products || [])];
+          const existing = updatedProducts.find(
+            (p) => p.productId === product.productId
+          );
+
+          if (existing) {
+            existing.quantity += product.quantity ?? 1;
+          } else {
+            updatedProducts.push(product);
+          }
+
+          const total = updatedProducts.reduce(
+            (sum, p) => sum + (p.price ?? 0) * p.quantity,
+            0
+          );
+
+          handleUpdateOrder({
+            ...order,
+            products: updatedProducts,
+            total,
+          });
+        }}
       />
     </div>
   );
